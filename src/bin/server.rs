@@ -1,16 +1,10 @@
 use tokio::net::{TcpListener, TcpStream};
-use std::io::Read;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use std::collections::HashMap;
-use tokio::io::{AsyncRead, BufReader};
-use std::net::IpAddr;
-use serde::{Serialize, Deserialize};
 use common::com::{Message, MsgType};
 use std::net::SocketAddr;
 use tokio::net::tcp::WriteHalf;
 use std::sync::Arc;
 use dashmap::DashMap;
-use dashmap::mapref::one::Ref;
 
 #[derive(Debug)]
 struct ClientInfo{
@@ -27,6 +21,7 @@ async fn main() {
     // Connection loop
     loop{
         let (stream, _addr) = listener.accept().await.unwrap();
+        println!("Connection established");
         let t = Arc::clone(&name_to_ip);
         tokio::spawn(async move {
             handle_connection(stream, t).await;
@@ -40,6 +35,7 @@ async fn handle_connection(mut stream : TcpStream, name_to_ip : Arc<DashMap<Stri
     let mut buff = String::new();
 
     // Event loop for handling messages
+    println!("Entering event loop");
     loop{
         let len = read.read_to_string(&mut buff).await.expect("Erroaa");
         
@@ -60,7 +56,7 @@ async fn handle_connection(mut stream : TcpStream, name_to_ip : Arc<DashMap<Stri
     }
 }
 
-fn handle_registration(msg : Message, write : &mut WriteHalf, nameToIp : Arc<DashMap<String, ClientInfo>>){
+fn handle_registration(msg : Message, write : &mut WriteHalf, name_to_ip : Arc<DashMap<String, ClientInfo>>){
     println!("Handling registration for {}", msg.payload);
 
     let m = serde_json::to_string(&Message{
@@ -71,14 +67,14 @@ fn handle_registration(msg : Message, write : &mut WriteHalf, nameToIp : Arc<Das
         let client_info = ClientInfo{
         adress : write.local_addr().unwrap(),
     };
-    nameToIp.insert(String::from(msg.payload), client_info);
+    name_to_ip.insert(String::from(msg.payload), client_info);
     
-    println!("{:?}", nameToIp);
+    println!("{:?}", name_to_ip);
 }
 
-fn handle_lookup(msg : Message, write : &mut WriteHalf, nameToIp : Arc<DashMap<String, ClientInfo>>){
+fn handle_lookup(msg : Message, write : &mut WriteHalf, name_to_ip : Arc<DashMap<String, ClientInfo>>){
     println!("Looking up {}", msg.payload);
-    let info = match nameToIp.get(msg.payload) {
+    let info = match name_to_ip.get(msg.payload) {
         Some(info) => info,
         None => return,
     };
