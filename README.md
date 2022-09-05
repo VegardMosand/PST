@@ -7,3 +7,4 @@
 - I did not have time to test on anything other than localhost
 - The client blocks while waiting for response from the server
 - Error handling is pretty much non existent
+- Lots of unwraps that should be handled instead

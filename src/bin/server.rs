@@ -31,13 +31,12 @@ async fn main() {
 
 async fn handle_connection(mut stream : TcpStream, name_to_ip : Arc<DashMap<String, ClientInfo>>){
     let (mut read, mut write) = stream.split();
-    //read.local_addr().unwrap().port();
     let mut buff = String::new();
 
     // Event loop for handling messages
     println!("Entering event loop");
     loop{
-        let len = read.read_to_string(&mut buff).await.expect("Erroaa");
+        let len = read.read_to_string(&mut buff).await.unwrap();
         
         // Ends connection when contact with client is broken
         if len == 0 {
@@ -61,6 +60,8 @@ fn handle_registration(msg : Message, write : &mut WriteHalf, name_to_ip : Arc<D
 
     let m = serde_json::to_string(&Message{
         message_type : MsgType::Registration,
+        sender : "",
+        recipient : "",
         payload : "",
     });
     let _ = write.write_all(m.unwrap().as_bytes());
@@ -81,6 +82,8 @@ fn handle_lookup(msg : Message, write : &mut WriteHalf, name_to_ip : Arc<DashMap
 
     let msg = serde_json::to_string(&Message{
         message_type : MsgType::Lookup,
+        sender : "",
+        recipient: "",
         payload : &serde_json::to_string(&info.value().adress).unwrap(),
     });
     println!("{:?}", msg);
