@@ -1,4 +1,4 @@
-# WIP! Public "Secure" Transportation chat service
+# WIP! Jobber fortsatt på dette, men ta gjerne en titt på koden.
 
 ## TODO
 - There is a lot of overhead in the size of the serialized struct
