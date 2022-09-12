@@ -8,3 +8,5 @@
 - The client blocks while waiting for response from the server
 - Error handling is pretty much non existent
 - Lots of unwraps that should be handled instead
+- Blocking while waiting for lookup response***
+- Sjekker ikke bruker input (navn kan være med whitespaces ol.)

@@ -10,10 +10,10 @@ pub mod com{
     }
 
     #[derive(Serialize, Deserialize, Debug)]
-    pub struct Message<'a>{
+    pub struct Message{
         pub message_type : MsgType,
-        pub sender : &'a str,
-        pub recipient : &'a str,
-        pub payload : &'a str,
+        pub sender : String,
+        pub recipient : String,
+        pub payload : String,
     }
 }
