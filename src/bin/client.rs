@@ -1,13 +1,20 @@
 use tokio::net::{TcpListener, TcpStream};
-use std::io;
+use std::{io, env};
 use tokio::io::{ AsyncReadExt, AsyncWriteExt };
 use common::com::{Message, MsgType};
 use dashmap::DashMap;
 use std::sync::Arc;
-use std::net::SocketAddr;
+use std::net::{SocketAddr, IpAddr};
+use pnet_datalink::interfaces;
+use rand::{Rng, thread_rng};
+
 
 #[tokio::main]
 async fn main() {
+    let args: Vec<String> = env::args().collect();
+    let server_addr = args.get(1).expect("Please supply the server ip address and port number as an argument (<ip>:<port>)");
+    println!("{}", args.get(1).unwrap());
+
     // Create cache for storing other clients
     let cache = Arc::new(DashMap::<String, TcpStream>::new());
 
@@ -19,7 +26,7 @@ async fn main() {
 
 
     // Start listening for incoming messages
-    let listener = create_listener(1024).await;
+    let listener = create_listener().await;
 
     let addr = serde_json::to_string(&listener.local_addr().unwrap());
     tokio::spawn(async move {
@@ -33,8 +40,9 @@ async fn main() {
         recipient : String::from(""),
         payload : addr.unwrap(), 
     }).unwrap();   
+
     let cache_clone= Arc::clone(&cache);
-    if let Ok(mut server_stream) = TcpStream::connect("127.0.0.1:8282").await{
+    if let Ok(mut server_stream) = TcpStream::connect(server_addr).await{
         println!("IP = {}, Port = {}", server_stream.local_addr().unwrap().ip(), server_stream.local_addr().unwrap().port());
         let _ = server_stream.write_all(reg.as_bytes()).await;
 
@@ -142,10 +150,17 @@ async fn send_message(stream : &mut TcpStream, message : &str, recipient : &str,
 
 
 /* Finds an available port to create a TcpListener */
-async fn create_listener(mut port : u16) -> TcpListener{
+async fn create_listener() -> TcpListener{
+    let ip = get_ip();
+
+    // use random port number
     const RESERVED : u16 = 1024;
+    let mut rng = thread_rng();
+    let mut port = rng.gen_range(RESERVED..u16::MAX);
+
+    // probe linearly for available port number
     loop{
-        let listener = TcpListener::bind(format!("127.0.0.1:{}", port.to_string())).await;
+        let listener = TcpListener::bind(SocketAddr::new(ip, port)).await;
         match listener{
             Ok(listener) => return listener,
             Err(_) => port = ((port+1) % (u16::MAX-RESERVED)) + RESERVED,
@@ -163,6 +178,7 @@ async fn incoming_message_listen_loop(listener : TcpListener) {
     }
 }
 
+/* Handles a connection to a client. Closed when connection is broken */
 async fn handle_connection(mut stream : TcpStream){
     loop{
         let mut buff = [0u8; 1024];
@@ -182,4 +198,24 @@ async fn handle_connection(mut stream : TcpStream){
 
 fn handle_message(msg : &Message){
     print!("{}: {}", msg.sender, msg.payload);
+}
+
+// Gets ipv4 of defualt interface. Panics if no default interface can be determined
+fn get_ip() -> IpAddr{
+    // Get a vector with all network interfaces found
+    let all_interfaces = interfaces();
+
+    // Search for the default interface - the one that is
+    // up, not loopback and has an IP.
+    let default_interface = all_interfaces
+        .iter()
+        .find(|e| e.is_up() && !e.is_loopback() && !e.ips.is_empty());
+
+    return match default_interface {
+        Some(interface) => {
+            let ips : Vec<IpAddr> = interface.ips.iter().filter(|x| x.is_ipv4()).map(|x| x.ip()).collect();
+            *ips.first().expect("Could not find valid ipv4 address")
+        }
+        None => panic!("Could not determine default interface"),
+    }
 }

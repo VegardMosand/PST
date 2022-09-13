@@ -1,10 +1,11 @@
 use common::com::{Message, MsgType};
 use dashmap::DashMap;
-use std::net::SocketAddr;
+use std::net::{SocketAddr, IpAddr};
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::WriteHalf;
 use tokio::net::{TcpListener, TcpStream};
+use pnet_datalink::interfaces;
 
 #[derive(Debug)]
 struct ClientInfo {
@@ -13,7 +14,9 @@ struct ClientInfo {
 
 #[tokio::main]
 async fn main() {
-    let listener = TcpListener::bind("127.0.0.1:8282").await.unwrap();
+    let socket = SocketAddr::new(get_ip(), 8282);
+    println!("IP: {}:{}", socket.ip(), socket.port());
+    let listener = TcpListener::bind(socket).await.unwrap();
 
     // Hashmap safe to use with concurrency
     let name_to_ip = Arc::new(DashMap::<String, ClientInfo>::new());
@@ -109,4 +112,24 @@ async fn send_lookup_failed(write : &mut WriteHalf<'_>){
     });
     
     let _ = write.write_all(msg.unwrap().as_bytes()).await;
+}
+
+// Gets ipv4 of defualt interface. Panics if no default interface can be determined
+fn get_ip() -> IpAddr{
+    // Get a vector with all network interfaces found
+    let all_interfaces = interfaces();
+
+    // Search for the default interface - the one that is
+    // up, not loopback and has an IP.
+    let default_interface = all_interfaces
+        .iter()
+        .find(|e| e.is_up() && !e.is_loopback() && !e.ips.is_empty());
+
+    return match default_interface {
+        Some(interface) => {
+            let ips : Vec<IpAddr> = interface.ips.iter().filter(|x| x.is_ipv4()).map(|x| x.ip()).collect();
+            *ips.first().expect("Could not find valid ipv4 address")
+        }
+        None => panic!("Could not determine default interface"),
+    }
 }
