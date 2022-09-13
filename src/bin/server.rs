@@ -39,21 +39,17 @@ async fn handle_connection(mut stream: TcpStream, name_to_ip: Arc<DashMap<String
         let len = read.read(&mut buff).await.unwrap();
         let buff_str = String::from_utf8_lossy(&buff[..len]);
 
-        println!("Got message {}", len);
-
         // Ends connection when contact with client is broken
         if len == 0 {
             return;
         }
 
-        println!("Len: {}", len);
         let msg: Message = serde_json::from_str::<Message>(&buff_str).unwrap();
         match msg.message_type {
             MsgType::Registration => handle_registration(msg, &mut write, Arc::clone(&name_to_ip)).await,
             MsgType::Lookup => handle_lookup(msg, &mut write, Arc::clone(&name_to_ip)).await,
             _ => continue,
         }
-        println!("Etter loop");
     }
 }
 

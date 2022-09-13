@@ -109,7 +109,14 @@ async fn await_lookup_response(stream : &mut TcpStream, cache : Arc<DashMap<Stri
     let mut buff = [0u8; 1024];
     let len = stream.read(&mut buff).await.unwrap();
     let buff_str = String::from_utf8_lossy(&buff[..len]);
-    let msg : Message = serde_json::from_str::<Message>(&buff_str).unwrap();
+    let msg : Message = match serde_json::from_str::<Message>(&buff_str){
+        Ok(msg) => msg,
+        Err(_) => {
+            println!("Connection with server broken, you can still continue ongoing chats");
+            return false;
+        }
+    };
+    
 
 
     let addr= serde_json::from_str(&msg.payload) as Result<SocketAddr, serde_json::Error>;
