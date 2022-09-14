@@ -1,4 +1,3 @@
-# WIP! Jobber fortsatt på dette, men ta gjerne en titt på koden.
 En enkel halvsentralisert chatteapplikasjon for å kommunisere på et lokalnett.
 Klienter vil sende serveren en registreringsmelding som inneholder brukernavn, ip adresse og port. Når man får en godkjenning fra serveren er man registrert og kan begynne å sende meldinger til andre klienter.
 Serveren fungerer litt som en DNS server. Klienter kan sende en lookup melding for et brukernavn til serveren. Hvis serveren har cachet den forespurte brukeren sender den ip og port tilbake til klienten. Klienten kan så sende meldinger til andre klienter.
