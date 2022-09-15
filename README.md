@@ -4,7 +4,7 @@ Serveren fungerer litt som en DNS server. Klienter kan sende en lookup melding f
 
 ## Bruk
 Server: ```cargo run --bin server```
-Klient: ```cargo run --bin client```
+Klient: ```cargo run --bin client <ip>:<port>```
 
 ## Problemer med løsningen 
 - Kan spare plass ved å lage en egen serialisering
@@ -13,4 +13,4 @@ Klient: ```cargo run --bin client```
 - Hvis to med samme brukernavn kobler seg til vil den siste kaste ut den første
 - Bruker for øyeblikket bare localhost
 - Klienter blir aldri kastet ut hos serveren. Ideelt burde klienter sende heartbeats til serveren med gjevne mellomrom for å gi beskjed om at de fortsatt er aktive.
-- Bruker bare ipv4 adresser (nettet jeg testet på hadde ikke støtte for ipv6)
+- Bruker bare ipv4 adresser.

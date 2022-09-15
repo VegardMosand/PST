@@ -125,6 +125,7 @@ fn get_ip() -> IpAddr{
         .iter()
         .find(|e| e.is_up() && !e.is_loopback() && !e.ips.is_empty());
 
+    // Returns the ipv4 address of the default interface
     return match default_interface {
         Some(interface) => {
             let ips : Vec<IpAddr> = interface.ips.iter().filter(|x| x.is_ipv4()).map(|x| x.ip()).collect();

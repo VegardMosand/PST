@@ -12,11 +12,18 @@ use rand::{Rng, thread_rng};
 #[tokio::main]
 async fn main() {
     let args: Vec<String> = env::args().collect();
-    let server_addr = args.get(1).expect("Please supply the server ip address and port number as an argument (<ip>:<port>)");
-    println!("{}", args.get(1).unwrap());
+    let server_addr = match args.get(1) {
+        Some(addr)=> addr,
+        None => {
+            println!("Please supply the server ip address and port number as an argument (<ip>:<port>)");
+            return;
+        },
+    };
+    
 
     // Create cache for storing other clients
     let cache = Arc::new(DashMap::<String, TcpStream>::new());
+
 
     // Get username
     println!("Please type in your username: ");
@@ -33,7 +40,9 @@ async fn main() {
         incoming_message_listen_loop(listener).await;
     });
 
+
     // Send Registration package and enter event loop
+    let cache_clone= Arc::clone(&cache);
     let reg = serde_json::to_string(&Message{
         message_type : MsgType::Registration,
         sender : String::from(&username),
@@ -41,7 +50,6 @@ async fn main() {
         payload : addr.unwrap(), 
     }).unwrap();   
 
-    let cache_clone= Arc::clone(&cache);
     if let Ok(mut server_stream) = TcpStream::connect(server_addr).await{
         println!("IP = {}, Port = {}", server_stream.local_addr().unwrap().ip(), server_stream.local_addr().unwrap().port());
         let _ = server_stream.write_all(reg.as_bytes()).await;
@@ -125,8 +133,6 @@ async fn await_lookup_response(stream : &mut TcpStream, cache : Arc<DashMap<Stri
         }
     };
     
-
-
     let addr= serde_json::from_str(&msg.payload) as Result<SocketAddr, serde_json::Error>;
 
     let addr = match addr {
